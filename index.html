@@ -123,25 +123,46 @@
     }
 
     // 시트 저장
-      async function saveToSheet() {
+      function saveToSheet() {
       const values = {};
       valRow.querySelectorAll('input').forEach(inp => { values[inp.dataset.key] = inp.value; });
       const msg = document.getElementById('saveMsg');
       msg.textContent = '저장 중...';
-      try {
-        await fetch(cfg.scriptUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({ password: cfg.password, values }),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        });
+
+      // 숨겨진 iframe + form으로 제출 (CORS 우회)
+      let iframe = document.getElementById('hidden_iframe');
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.name = 'hidden_iframe';
+        iframe.id = 'hidden_iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+      }
+
+      const form = document.createElement('form');
+      form.action = cfg.scriptUrl;
+      form.method = 'POST';
+      form.target = 'hidden_iframe';
+
+      const addField = (name, val) => {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = name; i.value = val;
+        form.appendChild(i);
+      };
+      addField('password', cfg.password);
+      addField('values', JSON.stringify(values));
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+
+      // 제출 후 1.5초 뒤 완료 표시
+      setTimeout(() => {
         msg.textContent = '✓ 시트에 전송됨! (시트에서 확인하세요)';
         valRow.querySelectorAll('input').forEach(inp => inp.value = '');
         document.getElementById('thumbs').innerHTML = '';
         document.getElementById('upStatus').textContent = '';
-      } catch (e) {
-        msg.textContent = '✗ 오류: ' + e;
-      }
+      }, 1500);
     }
   </script>
 </body>

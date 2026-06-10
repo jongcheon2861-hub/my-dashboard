@@ -123,13 +123,12 @@
     }
 
     // 시트 저장
-    async function saveToSheet() {
+      async function saveToSheet() {
       const values = {};
       valRow.querySelectorAll('input').forEach(inp => { values[inp.dataset.key] = inp.value; });
       const msg = document.getElementById('saveMsg');
       msg.textContent = '저장 중...';
       try {
-              try {
         await fetch(cfg.scriptUrl, {
           method: 'POST',
           mode: 'no-cors',
@@ -140,7 +139,9 @@
         valRow.querySelectorAll('input').forEach(inp => inp.value = '');
         document.getElementById('thumbs').innerHTML = '';
         document.getElementById('upStatus').textContent = '';
-      } catch (e) { msg.textContent = '✗ 오류: ' + e; }
+      } catch (e) {
+        msg.textContent = '✗ 오류: ' + e;
+      }
     }
   </script>
 </body>

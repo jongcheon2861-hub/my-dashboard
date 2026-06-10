@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설정</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    label { display: block; margin-top: 16px; font-weight: bold; }
+    input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+    button { margin-top: 24px; padding: 12px 24px; cursor: pointer; }
+    .hint { color: #666; font-size: 13px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <h2>설정</h2>
+  <p>한 번 입력하면 이 브라우저에 저장됩니다.</p>
+
+  <label>Cloudinary Cloud Name</label>
+  <input id="cloudName" placeholder="예: my-cloud">
+
+  <label>Cloudinary Upload Preset (unsigned)</label>
+  <input id="uploadPreset" placeholder="예: my_unsigned_preset">
+
+  <label>Apps Script 웹앱 URL</label>
+  <input id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+
+  <label>비밀번호 (Apps Script에 설정한 값)</label>
+  <input id="password" type="password" placeholder="내가정한비번1234">
+
+  <button onclick="save()">저장</button>
+  <p id="msg"></p>
+
+  <script>
+    // 기존 값 불러오기
+    document.getElementById('cloudName').value     = localStorage.getItem('cloudName') || '';
+    document.getElementById('uploadPreset').value  = localStorage.getItem('uploadPreset') || '';
+    document.getElementById('scriptUrl').value     = localStorage.getItem('scriptUrl') || '';
+    document.getElementById('password').value      = localStorage.getItem('password') || '';
+
+    function save() {
+      localStorage.setItem('cloudName',    document.getElementById('cloudName').value.trim());
+      localStorage.setItem('uploadPreset', document.getElementById('uploadPreset').value.trim());
+      localStorage.setItem('scriptUrl',    document.getElementById('scriptUrl').value.trim());
+      localStorage.setItem('password',     document.getElementById('password').value.trim());
+      document.getElementById('msg').textContent = '✓ 저장됨! 대시보드로 이동하세요.';
+    }
+  </script>
+</body>
+</html>

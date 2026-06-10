@@ -129,20 +129,17 @@
       const msg = document.getElementById('saveMsg');
       msg.textContent = '저장 중...';
       try {
-        const res = await fetch(cfg.scriptUrl, {
+              try {
+        await fetch(cfg.scriptUrl, {
           method: 'POST',
+          mode: 'no-cors',
           body: JSON.stringify({ password: cfg.password, values }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         });
-        const data = await res.json();
-        if (data.ok) {
-          msg.textContent = '✓ 시트에 저장됨!';
-          valRow.querySelectorAll('input').forEach(inp => inp.value = '');
-          document.getElementById('thumbs').innerHTML = '';
-          document.getElementById('upStatus').textContent = '';
-        } else {
-          msg.textContent = '✗ 실패: ' + data.error;
-        }
+        msg.textContent = '✓ 시트에 전송됨! (시트에서 확인하세요)';
+        valRow.querySelectorAll('input').forEach(inp => inp.value = '');
+        document.getElementById('thumbs').innerHTML = '';
+        document.getElementById('upStatus').textContent = '';
       } catch (e) { msg.textContent = '✗ 오류: ' + e; }
     }
   </script>

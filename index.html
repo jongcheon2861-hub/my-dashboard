@@ -13,12 +13,16 @@
   th { background: #f4f4f4; font-size: 13px; }
   td input { width: 100%; border: none; padding: 4px; box-sizing: border-box; }
   td input:focus { outline: 2px solid #4a90e2; }
-  #dropzone { border: 2px dashed #4a90e2; border-radius: 8px; padding: 30px;
-    text-align: center; color: #4a90e2; cursor: pointer; margin: 16px 0; background: #f8fbff; }
-  #dropzone.drag { background: #e3f0ff; }
-  #thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-  #thumbs .item { width: 90px; text-align: center; font-size: 11px; }
-  #thumbs img { width: 90px; height: 90px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
+  .imgGrid { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+  .imgBox { width: 160px; border: 2px dashed #bbb; border-radius: 8px; padding: 10px;
+    text-align: center; cursor: pointer; background: #fafafa; transition: 0.2s; }
+  .imgBox.drag { background: #e3f0ff; border-color: #4a90e2; }
+  .imgBox.done { border-color: #2ca02c; border-style: solid; background: #f1fbf1; }
+  .imgBox .label { font-size: 13px; font-weight: bold; color: #999; margin-bottom: 6px; }
+  .imgBox.done .label { color: #2ca02c; }
+  .imgBox img { width: 100%; height: 110px; object-fit: cover; border-radius: 4px; }
+  .imgBox .placeholder { color: #aaa; font-size: 12px; padding: 30px 0; }
+  .imgBox .status { font-size: 11px; color: #4a90e2; margin-top: 4px; min-height: 14px; }
   button { background: #4a90e2; color: #fff; border: none; padding: 10px 20px;
     border-radius: 6px; font-size: 15px; cursor: pointer; }
   button:hover { background: #357abd; }
@@ -32,17 +36,14 @@
     <h2>상품 등록 대시보드</h2>
     <a class="cfg" href="config.html">⚙️ 설정</a>
   </div>
-  <p class="hint">표에 값을 입력하고, 아래에 이미지를 끌어다 놓으면 자동 업로드됩니다.</p>
+  <p class="hint">표에 텍스트를 입력하고, 아래 각 칸에 해당 이미지를 끌어다 놓으세요.</p>
 
   <table id="grid">
     <thead><tr id="headRow"></tr></thead>
     <tbody><tr id="valRow"></tr></tbody>
   </table>
 
-  <div id="dropzone">📁 여기에 이미지를 드래그앤드롭 하거나 클릭해서 선택하세요</div>
-  <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
-  <div id="upStatus" class="hint"></div>
-  <div id="thumbs"></div>
+  <div class="imgGrid" id="imgGrid"></div>
 
   <div>
     <button id="saveBtn">시트에 저장</button>
@@ -52,7 +53,7 @@
 <script>
   const cfg = {
     fields: (localStorage.getItem('fields') || '').split(',').map(s => s.trim()).filter(Boolean),
-    imageCount: parseInt(localStorage.getItem('imageCount') || '10', 10),
+    imageLabels: (localStorage.getItem('imageLabels') || '').split(',').map(s => s.trim()).filter(Boolean),
     cloudName: localStorage.getItem('cloudName') || '',
     uploadPreset: localStorage.getItem('uploadPreset') || '',
     scriptUrl: localStorage.getItem('scriptUrl') || '',
@@ -64,17 +65,13 @@
     location.href = 'config.html';
   }
 
-  // 표 헤더/입력칸 생성 (텍스트 항목 + image_1..N)
+  // --- 텍스트 표 만들기 ---
   const headRow = document.getElementById('headRow');
   const valRow = document.getElementById('valRow');
-  const allKeys = [...cfg.fields];
-  for (let i = 1; i <= cfg.imageCount; i++) allKeys.push('image_' + i);
-
-  allKeys.forEach(key => {
+  cfg.fields.forEach(key => {
     const th = document.createElement('th');
     th.textContent = key;
     headRow.appendChild(th);
-
     const td = document.createElement('td');
     const inp = document.createElement('input');
     inp.dataset.key = key;
@@ -82,49 +79,75 @@
     valRow.appendChild(td);
   });
 
-  // 이미지 칸들만 따로 모아두기 (순서대로 채우기 위해)
-  function imageInputs() {
-    return [...valRow.querySelectorAll('input')].filter(i => i.dataset.key.startsWith('image_'));
-  }
-  // 다음 빈 이미지 칸 찾기
-  function nextEmptyImageInput() {
-    return imageInputs().find(i => !i.value);
-  }
+  // --- 이미지 박스 만들기 (라벨별 개별 박스) ---
+  const imgGrid = document.getElementById('imgGrid');
+  const imageValues = {}; // {라벨: URL}
 
-  // 드래그앤드롭 + 클릭 업로드
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('fileInput');
-  const upStatus = document.getElementById('upStatus');
-  const thumbs = document.getElementById('thumbs');
+  cfg.imageLabels.forEach(label => {
+    imageValues[label] = '';
 
-  dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('drag');
-    handleFiles(e.dataTransfer.files);
+    const box = document.createElement('div');
+    box.className = 'imgBox';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'label';
+    labelEl.textContent = label;
+    box.appendChild(labelEl);
+
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = '여기에 끌어다 놓기';
+    box.appendChild(ph);
+
+    const status = document.createElement('div');
+    status.className = 'status';
+    box.appendChild(status);
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    box.appendChild(fileInput);
+
+    // 클릭으로 파일 선택
+    box.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) uploadFile(e.target.files[0], box, label, ph, status, labelEl);
+    });
+
+    // 드래그앤드롭
+    box.addEventListener('dragover', e => { e.preventDefault(); box.classList.add('drag'); });
+    box.addEventListener('dragleave', () => box.classList.remove('drag'));
+    box.addEventListener('drop', e => {
+      e.preventDefault();
+      box.classList.remove('drag');
+      if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0], box, label, ph, status, labelEl);
+    });
+
+    imgGrid.appendChild(box);
   });
-  fileInput.addEventListener('change', e => handleFiles(e.target.files));
 
-  async function handleFiles(files) {
+  async function uploadFile(file, box, label, ph, status, labelEl) {
     if (!cfg.cloudName || !cfg.uploadPreset) {
       alert('설정 페이지에서 Cloudinary Cloud Name과 Upload Preset을 입력하세요.');
       return;
     }
-    const list = [...files];
-    for (const file of list) {
-      const slot = nextEmptyImageInput();
-      if (!slot) { upStatus.textContent = '이미지 칸이 가득 찼습니다.'; break; }
-      upStatus.textContent = '업로드 중: ' + file.name + ' ...';
-      try {
-        const url = await uploadToCloudinary(file);
-        slot.value = url;
-        addThumb(url, slot.dataset.key);
-        upStatus.textContent = '✓ ' + file.name + ' 업로드 완료';
-      } catch (err) {
-        upStatus.textContent = '✗ 업로드 실패: ' + err;
+    status.textContent = '업로드 중...';
+    try {
+      const url = await uploadToCloudinary(file);
+      imageValues[label] = url;
+      // 썸네일 표시
+      ph.style.display = 'none';
+      let img = box.querySelector('img');
+      if (!img) {
+        img = document.createElement('img');
+        box.insertBefore(img, status);
       }
+      img.src = url;
+      box.classList.add('done');   // 라벨 초록색 + 테두리 초록
+      status.textContent = '✓ 완료';
+    } catch (err) {
+      status.textContent = '✗ 실패: ' + err;
     }
   }
 
@@ -133,27 +156,21 @@
     fd.append('file', file);
     fd.append('upload_preset', cfg.uploadPreset);
     const res = await fetch('https://api.cloudinary.com/v1_1/' + cfg.cloudName + '/image/upload', {
-      method: 'POST',
-      body: fd,
+      method: 'POST', body: fd,
     });
     const data = await res.json();
     if (data.secure_url) return data.secure_url;
     throw new Error(data.error ? data.error.message : '알 수 없는 오류');
   }
 
-  function addThumb(url, key) {
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = '<img src="' + url + '"><div>' + key + '</div>';
-    thumbs.appendChild(div);
-  }
-
-  // 시트 저장 (폼 제출 방식)
+  // --- 시트 저장 ---
   document.getElementById('saveBtn').addEventListener('click', saveToSheet);
 
   function saveToSheet() {
     const values = {};
     valRow.querySelectorAll('input').forEach(inp => { values[inp.dataset.key] = inp.value; });
+    cfg.imageLabels.forEach(label => { values[label] = imageValues[label]; });
+
     const msg = document.getElementById('saveMsg');
     msg.textContent = '저장 중...';
 
@@ -180,11 +197,7 @@
 
     setTimeout(() => {
       msg.textContent = '✓ 시트에 전송됨! (시트에서 확인하세요)';
-      valRow.querySelectorAll('input').forEach(inp => inp.value = '');
-      thumbs.innerHTML = '';
-      upStatus.textContent = '';
-      document.body.removeChild(form);
-      document.body.removeChild(iframe);
+      location.reload();
     }, 1500);
   }
 </script>

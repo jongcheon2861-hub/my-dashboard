@@ -197,10 +197,10 @@
   }
 
   // --- 시트 저장 ---
-  document.getElementById('saveBtn').addEventListener('click', saveToSheet);
- document.getElementById('figmaBtn').addEventListener('click', () => {
-    window.open('https://www.figma.com/design/li9jKwHidWLdqfMJlXo7U2/%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80?node-id=0-1&p=f&t=UUTwQn1zekrvUORd-0', '_blank');
+   document.getElementById('figmaBtn').addEventListener('click', () => {
+    window.open('https://www.figma.com/design/li9jKwHidWLdqfMJlXo7U2/', '_blank');
   });
+
   function saveToSheet() {
     const values = {};
     valRow.querySelectorAll('input').forEach(inp => { values[inp.dataset.key] = inp.value; });

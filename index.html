@@ -144,11 +144,38 @@
         box.insertBefore(img, status);
       }
       img.src = url;
-      box.classList.add('done');   // 라벨 초록색 + 테두리 초록
+      box.classList.add('done');
+
+      // X(삭제) 버튼 추가
+      let delBtn = box.querySelector('.delBtn');
+      if (!delBtn) {
+        delBtn = document.createElement('div');
+        delBtn.className = 'delBtn';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();   // 박스 클릭(파일 선택)으로 번지지 않게
+          clearImage(box, label, ph, status);
+        });
+        box.appendChild(delBtn);
+      }
       status.textContent = '✓ 완료';
     } catch (err) {
       status.textContent = '✗ 실패: ' + err;
     }
+  }
+
+  function clearImage(box, label, ph, status) {
+    imageValues[label] = '';
+    const img = box.querySelector('img');
+    if (img) img.remove();
+    const delBtn = box.querySelector('.delBtn');
+    if (delBtn) delBtn.remove();
+    box.classList.remove('done');
+    ph.style.display = '';
+    status.textContent = '';
+    // 같은 파일 다시 올릴 수 있게 input 초기화
+    const fi = box.querySelector('input[type=file]');
+    if (fi) fi.value = '';
   }
 
   async function uploadToCloudinary(file) {

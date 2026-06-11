@@ -5,50 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>설정</title>
 <style>
-body { font-family: sans-serif; max-width: 520px; margin: 40px auto; padding: 0 16px; }
-label { display: block; margin-top: 16px; font-weight: bold; }
-input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-textarea { min-height: 70px; }
-button { margin-top: 24px; padding: 12px 24px; cursor: pointer; }
-.hint { color: #666; font-size: 13px; margin-top: 2px; }
+  body { font-family: -apple-system, sans-serif; max-width: 640px; margin: 20px auto; padding: 0 16px; }
+  label { display: block; margin-top: 16px; font-weight: bold; }
+  input, textarea { width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;
+    border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+  textarea { height: 60px; }
+  .hint { color: #666; font-size: 13px; margin-top: 2px; }
+  button { margin-top: 20px; background: #4a90e2; color: #fff; border: none;
+    padding: 10px 20px; border-radius: 6px; font-size: 15px; cursor: pointer; }
+  #msg { margin-left: 12px; font-weight: bold; color: green; }
+  a { font-size: 13px; }
 </style>
 </head>
 <body>
-<h2>설정</h2>
-<label>텍스트 항목 (쉼표로 구분)</label>
-<textarea id="fields" placeholder="상품명, 가격, 소재, 사이즈"></textarea>
-<p class="hint">구글 시트 첫 행(헤더)과 똑같은 이름으로 적으세요.</p>
+  <h2>설정</h2>
+  <p><a href="index.html">→ 대시보드로 이동</a></p>
 
-<label>이미지 장수</label>
-<input id="imageCount" type="number" value="10">
+  <label>텍스트 항목 (쉼표로 구분)</label>
+  <textarea id="fields" placeholder="상품명, 가격, 소재, 사이즈"></textarea>
+  <p class="hint">구글 시트 첫 행(헤더)과 똑같은 이름으로 적으세요.</p>
 
-<label>Cloudinary Cloud Name</label>
-<input id="cloudName" placeholder="예: my-cloud">
+  <label>이미지 설명 (쉼표로 구분)</label>
+  <textarea id="imageLabels" placeholder="농장이미지, 택배포장이미지, 단면이미지, 농장주인이미지"></textarea>
+  <p class="hint">각 이미지 칸의 이름이 됩니다. 이 이름이 시트 헤더가 됩니다.</p>
 
-<label>Cloudinary Upload Preset</label>
-<input id="uploadPreset" placeholder="예: my_unsigned_preset">
+  <label>Cloudinary Cloud Name</label>
+  <input id="cloudName" placeholder="dkaotbu1b">
 
-<label>Apps Script 웹앱 URL</label>
-<input id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+  <label>Cloudinary Upload Preset (unsigned)</label>
+  <input id="uploadPreset" placeholder="my_preset">
 
-<label>비밀번호</label>
-<input id="password" type="text" value="1234">
+  <label>Apps Script 웹앱 URL</label>
+  <input id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
 
-<button onclick="save()">저장</button>
-<p id="msg"></p>
+  <label>비밀번호</label>
+  <input id="password" placeholder="1234">
+
+  <div>
+    <button id="saveBtn">저장</button>
+    <span id="msg"></span>
+  </div>
 
 <script>
-const g = id => document.getElementById(id);
-['fields','imageCount','cloudName','uploadPreset','scriptUrl','password'].forEach(k=>{
-  const v = localStorage.getItem(k);
-  if (v !== null) g(k).value = v;
-});
-function save(){
-  ['fields','imageCount','cloudName','uploadPreset','scriptUrl','password'].forEach(k=>{
-    localStorage.setItem(k, g(k).value.trim());
+  // 기존 값 불러오기
+  document.getElementById('fields').value = localStorage.getItem('fields') || '';
+  document.getElementById('imageLabels').value = localStorage.getItem('imageLabels') || '';
+  document.getElementById('cloudName').value = localStorage.getItem('cloudName') || '';
+  document.getElementById('uploadPreset').value = localStorage.getItem('uploadPreset') || '';
+  document.getElementById('scriptUrl').value = localStorage.getItem('scriptUrl') || '';
+  document.getElementById('password').value = localStorage.getItem('password') || '';
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    localStorage.setItem('fields', document.getElementById('fields').value);
+    localStorage.setItem('imageLabels', document.getElementById('imageLabels').value);
+    localStorage.setItem('cloudName', document.getElementById('cloudName').value);
+    localStorage.setItem('uploadPreset', document.getElementById('uploadPreset').value);
+    localStorage.setItem('scriptUrl', document.getElementById('scriptUrl').value);
+    localStorage.setItem('password', document.getElementById('password').value);
+    document.getElementById('msg').textContent = '✓ 저장됨! 대시보드로 이동하세요.';
   });
-  g('msg').textContent = '✓ 저장됨! 대시보드로 이동하세요.';
-}
 </script>
 </body>
 </html>

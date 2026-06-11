@@ -47,6 +47,12 @@
     <thead><tr id="headRow"></tr></thead>
     <tbody><tr id="valRow"></tr></tbody>
   </table>
+  <div style="margin:12px 0; padding:12px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
+    <div class="hint" style="margin-bottom:6px;">📋 한 번에 붙여넣기 (엑셀/시트에서 가로로 복사한 내용을 붙이고 분배 누르기)</div>
+    <textarea id="pasteBox" style="width:100%; height:70px; box-sizing:border-box; padding:8px;" placeholder="여기에 붙여넣기 (Ctrl+V)"></textarea>
+    <button id="distributeBtn" style="margin-top:8px;">칸에 분배</button>
+    <span id="distMsg" style="margin-left:10px; font-size:13px; color:#666;"></span>
+  </div>
 
   <div class="imgGrid" id="imgGrid"></div>
 
@@ -199,6 +205,24 @@
   // --- 시트 저장 ---
    document.getElementById('figmaBtn').addEventListener('click', () => {
     window.open('https://www.figma.com/design/li9jKwHidWLdqfMJlXo7U2/', '_blank');
+  });
+  // --- 한 번에 붙여넣기 분배 ---
+  document.getElementById('distributeBtn').addEventListener('click', () => {
+    const raw = document.getElementById('pasteBox').value;
+    const distMsg = document.getElementById('distMsg');
+    if (!raw.trim()) { distMsg.textContent = '붙여넣은 내용이 없습니다.'; return; }
+
+    // 탭 또는 줄바꿈으로 분리 (탭 우선)
+    let parts = raw.includes('\t') ? raw.split('\t') : raw.split('\n');
+    parts = parts.map(s => s.trim());
+
+    const inputs = valRow.querySelectorAll('input');
+    let filled = 0;
+    inputs.forEach((inp, i) => {
+      if (i < parts.length) { inp.value = parts[i]; filled++; }
+    });
+
+    distMsg.textContent = `✓ ${filled}개 칸에 채웠습니다 (붙여넣은 항목 ${parts.length}개)`;
   });
 
   function saveToSheet() {

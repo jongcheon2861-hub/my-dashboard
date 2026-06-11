@@ -3,131 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>상세페이지 대시보드</title>
+<title>상품 등록 대시보드</title>
 <style>
-body { font-family: sans-serif; max-width: 1000px; margin: 30px auto; padding: 0 16px; }
-.topbar { text-align: right; }
-table { border-collapse: collapse; margin-top: 12px; }
-th, td { border: 1px solid #ccc; padding: 0; }
-th { background: #f3f3f3; padding: 6px 10px; white-space: nowrap; font-size: 13px; }
-td input { border: none; padding: 6px 10px; width: 140px; font-size: 13px; }
-td input:focus { outline: 2px solid #4a90d9; }
-.hint { color: #666; font-size: 13px; }
-button { margin-top: 16px; padding: 10px 20px; cursor: pointer; }
-.imgbox { margin-top: 24px; }
-.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.thumbs figure { margin: 0; font-size: 11px; text-align: center; }
-.thumbs img { width: 90px; height: 90px; object-fit: cover; border: 1px solid #ddd; }
-#saveMsg { margin-top: 12px; font-weight: bold; }
-.scroll { overflow-x: auto; }
+  body { font-family: -apple-system, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 16px; }
+  h2 { margin-bottom: 4px; }
+  .hint { color: #666; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+  th { background: #f4f4f4; font-size: 13px; }
+  td input { width: 100%; border: none; padding: 4px; box-sizing: border-box; }
+  td input:focus { outline: 2px solid #4a90e2; }
+  #dropzone { border: 2px dashed #4a90e2; border-radius: 8px; padding: 30px;
+    text-align: center; color: #4a90e2; cursor: pointer; margin: 16px 0; background: #f8fbff; }
+  #dropzone.drag { background: #e3f0ff; }
+  #thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  #thumbs .item { width: 90px; text-align: center; font-size: 11px; }
+  #thumbs img { width: 90px; height: 90px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
+  button { background: #4a90e2; color: #fff; border: none; padding: 10px 20px;
+    border-radius: 6px; font-size: 15px; cursor: pointer; }
+  button:hover { background: #357abd; }
+  #saveMsg { margin-left: 12px; font-weight: bold; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; }
+  a.cfg { font-size: 13px; }
 </style>
 </head>
 <body>
-<div class="topbar"><a href="config.html">⚙ 설정</a></div>
-<h2>상품 상세페이지 입력</h2>
-<p class="hint">구글 시트에서 한 줄을 복사한 뒤, 표 첫 칸을 클릭하고 Ctrl+V로 붙여넣으세요.</p>
+  <div class="topbar">
+    <h2>상품 등록 대시보드</h2>
+    <a class="cfg" href="config.html">⚙️ 설정</a>
+  </div>
+  <p class="hint">표에 값을 입력하고, 아래에 이미지를 끌어다 놓으면 자동 업로드됩니다.</p>
 
-<div class="scroll">
-<table id="grid"><thead><tr id="headRow"></tr></thead><tbody><tr id="valRow"></tr></tbody></table>
-</div>
+  <table id="grid">
+    <thead><tr id="headRow"></tr></thead>
+    <tbody><tr id="valRow"></tr></tbody>
+  </table>
 
-<div class="imgbox">
-<h3>이미지 업로드 (여러 장 한 번에)</h3>
-<input type="file" accept="image/*" multiple onchange="uploadImages(this)">
-<span id="upStatus" class="hint"></span>
-<div class="thumbs" id="thumbs"></div>
-</div>
+  <div id="dropzone">📁 여기에 이미지를 드래그앤드롭 하거나 클릭해서 선택하세요</div>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+  <div id="upStatus" class="hint"></div>
+  <div id="thumbs"></div>
 
-<button onclick="saveToSheet()">시트에 저장</button>
-<p id="saveMsg"></p>
-
-<iframe name="hidden_iframe" id="hidden_iframe" style="display:none"></iframe>
+  <div>
+    <button id="saveBtn">시트에 저장</button>
+    <span id="saveMsg"></span>
+  </div>
 
 <script>
-const cfg = {
-  fields: (localStorage.getItem('fields')||'').split(',').map(s=>s.trim()).filter(Boolean),
-  imageCount: parseInt(localStorage.getItem('imageCount')||'0',10),
-  cloudName: localStorage.getItem('cloudName'),
-  uploadPreset: localStorage.getItem('uploadPreset'),
-  scriptUrl: localStorage.getItem('scriptUrl'),
-  password: localStorage.getItem('password'),
-};
+  const cfg = {
+    fields: (localStorage.getItem('fields') || '').split(',').map(s => s.trim()).filter(Boolean),
+    imageCount: parseInt(localStorage.getItem('imageCount') || '10', 10),
+    cloudName: localStorage.getItem('cloudName') || '',
+    uploadPreset: localStorage.getItem('uploadPreset') || '',
+    scriptUrl: localStorage.getItem('scriptUrl') || '',
+    password: localStorage.getItem('password') || '',
+  };
 
-if (!cfg.scriptUrl || cfg.fields.length === 0) {
-  alert('먼저 설정 페이지에서 항목과 URL을 입력하세요.');
-  location.href = 'config.html';
-}
-
-const imageKeys = [];
-for (let i=1;i<=cfg.imageCount;i++) imageKeys.push('image_'+i);
-
-const headRow = document.getElementById('headRow');
-const valRow = document.getElementById('valRow');
-const allKeys = cfg.fields.concat(imageKeys);
-allKeys.forEach(key=>{
-  const th=document.createElement('th'); th.textContent=key; headRow.appendChild(th);
-  const td=document.createElement('td');
-  const inp=document.createElement('input'); inp.dataset.key=key;
-  td.appendChild(inp); valRow.appendChild(td);
-});
-
-valRow.addEventListener('paste', e=>{
-  const text=(e.clipboardData||window.clipboardData).getData('text');
-  if(!text.includes('\t')&&!text.includes('\n')) return;
-  e.preventDefault();
-  const cells=text.split('\n')[0].split('\t');
-  const start=allKeys.indexOf(e.target.dataset.key);
-  const inputs=valRow.querySelectorAll('input');
-  cells.forEach((v,i)=>{ if(inputs[start+i]) inputs[start+i].value=v.trim(); });
-});
-
-async function uploadImages(input){
-  const files=Array.from(input.files);
-  if(!cfg.cloudName||!cfg.uploadPreset){ alert('Cloudinary 설정이 필요합니다.'); return; }
-  const status=document.getElementById('upStatus');
-  const inputs=valRow.querySelectorAll('input');
-  let done=0; status.textContent='0/'+files.length+' 업로드 중...';
-  for(let i=0;i<files.length;i++){
-    const form=new FormData();
-    form.append('file',files[i]); form.append('upload_preset',cfg.uploadPreset);
-    try{
-      const res=await fetch('https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/image/upload',{method:'POST',body:form});
-      const data=await res.json();
-      if(data.secure_url){
-        const key='image_'+(i+1);
-        inputs.forEach(inp=>{ if(inp.dataset.key===key) inp.value=data.secure_url; });
-        const fig=document.createElement('figure');
-        fig.innerHTML='<img src="'+data.secure_url+'"><figcaption>'+key+'</figcaption>';
-        document.getElementById('thumbs').appendChild(fig);
-      }
-    }catch(err){ console.error(err); }
-    done++; status.textContent=done+'/'+files.length+' 업로드 중...';
+  if (!cfg.scriptUrl || cfg.fields.length === 0) {
+    alert('먼저 설정 페이지에서 항목과 URL을 입력하세요.');
+    location.href = 'config.html';
   }
-  status.textContent='✓ '+done+'장 완료';
-}
 
-function saveToSheet(){
-  const values={};
-  valRow.querySelectorAll('input').forEach(inp=>{ values[inp.dataset.key]=inp.value; });
-  const msg=document.getElementById('saveMsg');
-  msg.textContent='저장 중...';
+  // 표 헤더/입력칸 생성 (텍스트 항목 + image_1..N)
+  const headRow = document.getElementById('headRow');
+  const valRow = document.getElementById('valRow');
+  const allKeys = [...cfg.fields];
+  for (let i = 1; i <= cfg.imageCount; i++) allKeys.push('image_' + i);
 
-  const form=document.createElement('form');
-  form.action=cfg.scriptUrl; form.method='POST'; form.target='hidden_iframe';
-  const add=(n,v)=>{ const i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; form.appendChild(i); };
-  add('password',cfg.password);
-  add('values',JSON.stringify(values));
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
+  allKeys.forEach(key => {
+    const th = document.createElement('th');
+    th.textContent = key;
+    headRow.appendChild(th);
 
-  setTimeout(()=>{
-    msg.textContent='✓ 시트에 전송됨! (시트에서 확인하세요)';
-    valRow.querySelectorAll('input').forEach(inp=>inp.value='');
-    document.getElementById('thumbs').innerHTML='';
-    document.getElementById('upStatus').textContent='';
-  },1500);
-}
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.dataset.key = key;
+    td.appendChild(inp);
+    valRow.appendChild(td);
+  });
+
+  // 이미지 칸들만 따로 모아두기 (순서대로 채우기 위해)
+  function imageInputs() {
+    return [...valRow.querySelectorAll('input')].filter(i => i.dataset.key.startsWith('image_'));
+  }
+  // 다음 빈 이미지 칸 찾기
+  function nextEmptyImageInput() {
+    return imageInputs().find(i => !i.value);
+  }
+
+  // 드래그앤드롭 + 클릭 업로드
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const upStatus = document.getElementById('upStatus');
+  const thumbs = document.getElementById('thumbs');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+  async function handleFiles(files) {
+    if (!cfg.cloudName || !cfg.uploadPreset) {
+      alert('설정 페이지에서 Cloudinary Cloud Name과 Upload Preset을 입력하세요.');
+      return;
+    }
+    const list = [...files];
+    for (const file of list) {
+      const slot = nextEmptyImageInput();
+      if (!slot) { upStatus.textContent = '이미지 칸이 가득 찼습니다.'; break; }
+      upStatus.textContent = '업로드 중: ' + file.name + ' ...';
+      try {
+        const url = await uploadToCloudinary(file);
+        slot.value = url;
+        addThumb(url, slot.dataset.key);
+        upStatus.textContent = '✓ ' + file.name + ' 업로드 완료';
+      } catch (err) {
+        upStatus.textContent = '✗ 업로드 실패: ' + err;
+      }
+    }
+  }
+
+  async function uploadToCloudinary(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', cfg.uploadPreset);
+    const res = await fetch('https://api.cloudinary.com/v1_1/' + cfg.cloudName + '/image/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    const data = await res.json();
+    if (data.secure_url) return data.secure_url;
+    throw new Error(data.error ? data.error.message : '알 수 없는 오류');
+  }
+
+  function addThumb(url, key) {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = '<img src="' + url + '"><div>' + key + '</div>';
+    thumbs.appendChild(div);
+  }
+
+  // 시트 저장 (폼 제출 방식)
+  document.getElementById('saveBtn').addEventListener('click', saveToSheet);
+
+  function saveToSheet() {
+    const values = {};
+    valRow.querySelectorAll('input').forEach(inp => { values[inp.dataset.key] = inp.value; });
+    const msg = document.getElementById('saveMsg');
+    msg.textContent = '저장 중...';
+
+    const iframe = document.createElement('iframe');
+    iframe.name = 'sinkframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const form = document.createElement('form');
+    form.action = cfg.scriptUrl;
+    form.method = 'POST';
+    form.target = 'sinkframe';
+
+    const pw = document.createElement('input');
+    pw.name = 'password'; pw.value = cfg.password;
+    form.appendChild(pw);
+
+    const vals = document.createElement('input');
+    vals.name = 'values'; vals.value = JSON.stringify(values);
+    form.appendChild(vals);
+
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(() => {
+      msg.textContent = '✓ 시트에 전송됨! (시트에서 확인하세요)';
+      valRow.querySelectorAll('input').forEach(inp => inp.value = '');
+      thumbs.innerHTML = '';
+      upStatus.textContent = '';
+      document.body.removeChild(form);
+      document.body.removeChild(iframe);
+    }, 1500);
+  }
 </script>
 </body>
 </html>
